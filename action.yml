@@ -1,0 +1,52 @@
+name: Setup Zig without Node
+description: Install Zig and cache its global compilation cache using a composite action
+inputs:
+  version:
+    description: Zig version, master, latest, or empty to read minimum_zig_version from build.zig.zon
+    default: ''
+  mirror:
+    description: Base URL for downloading Zig archives instead of the URL in the official index
+    default: ''
+  use-cache:
+    description: Cache the global and local Zig cache directories
+    default: 'true'
+  cache-key:
+    description: Additional key component to separate Zig compilation caches
+    default: ''
+  cache-size-limit:
+    description: Maximum Zig cache size in MiB; zero disables the limit
+    default: '2048'
+  use-tool-cache:
+    description: Use a persistent runner tool cache; defaults to true on self-hosted runners
+    default: ''
+runs:
+  using: composite
+  steps:
+    - name: Resolve and install Zig
+      id: install
+      shell: bash
+      env:
+        INPUT_VERSION: ${{ inputs.version }}
+        INPUT_MIRROR: ${{ inputs.mirror }}
+        INPUT_USE_TOOL_CACHE: ${{ inputs.use-tool-cache }}
+      run: |
+        action_path="$GITHUB_ACTION_PATH"
+        if [[ "$RUNNER_OS" == Windows ]]; then action_path="$(cygpath -u "$action_path")"; fi
+        bash "$action_path/scripts/install.sh"
+    - name: Restore Zig compilation cache
+      if: inputs.use-cache == 'true'
+      uses: actions/cache@v4
+      with:
+        path: ${{ github.workspace }}/.zig-cache
+        key: zig-zouave-v1-${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-${{ steps.install.outputs.version }}-${{ inputs.cache-key }}-${{ github.run_id }}-${{ github.run_attempt }}
+        restore-keys: |
+          zig-zouave-v1-${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-${{ steps.install.outputs.version }}-${{ inputs.cache-key }}-
+    - name: Enforce Zig cache size limit
+      if: inputs.use-cache == 'true'
+      shell: bash
+      env:
+        INPUT_CACHE_SIZE_LIMIT: ${{ inputs.cache-size-limit }}
+      run: |
+        action_path="$GITHUB_ACTION_PATH"
+        if [[ "$RUNNER_OS" == Windows ]]; then action_path="$(cygpath -u "$action_path")"; fi
+        bash "$action_path/scripts/limit-cache.sh"

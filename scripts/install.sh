@@ -113,7 +113,7 @@ if [[ ! -f "$tool_dir/$binary" ]]; then
   else
     actual="$(shasum -a 256 "$archive" | cut -d' ' -f1)"
   fi
-  [[ "${actual,,}" == "${expected,,}" ]] || die "SHA-256 mismatch for $filename"
+  [[ "$actual" == "$expected" ]] || die "SHA-256 mismatch for $filename"
   echo "SHA-256 verified against ziglang.org/download/index.json"
 
   mkdir -p "$work/extracted" "$(dirname "$tool_dir")"

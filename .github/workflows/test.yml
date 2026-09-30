@@ -37,6 +37,7 @@ jobs:
         uses: ./
         with:
           version: ${{ matrix.version }}
+          mirror: https://pkg.machengine.org/zig
       - name: Check version and run hello world
         shell: bash
         env:

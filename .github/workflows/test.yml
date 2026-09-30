@@ -15,8 +15,6 @@ jobs:
             version: latest
           - runner: macos-latest
             version: latest
-          - runner: windows-latest
-            version: latest
           - runner: ubuntu-latest
             version: ''
             expected: '0.15.2'

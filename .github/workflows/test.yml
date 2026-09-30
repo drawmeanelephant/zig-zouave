@@ -1,0 +1,58 @@
+name: Test composite action
+on:
+  push:
+    branches: [main, 'droid/**']
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  install-and-build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            version: latest
+          - runner: macos-latest
+            version: latest
+          - runner: ubuntu-latest
+            version: ''
+            expected: '0.15.2'
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Provide project minimum version
+        if: matrix.version == ''
+        shell: bash
+        run: |
+          cat > build.zig.zon <<'EOF'
+          .{
+              .name = .example,
+              .version = "0.0.0",
+              .minimum_zig_version = "0.15.2",
+              .paths = .{""},
+          }
+          EOF
+      - name: Install Zig from this checkout
+        uses: ./
+        with:
+          version: ${{ matrix.version }}
+          mirror: https://pkg.machengine.org/zig
+      - name: Check version and run hello world
+        shell: bash
+        env:
+          EXPECTED_VERSION: ${{ matrix.expected }}
+        run: |
+          set -euo pipefail
+          zig version
+          if [[ -n "$EXPECTED_VERSION" ]]; then
+            test "$(zig version)" = "$EXPECTED_VERSION"
+          fi
+          cat > hello.zig <<'EOF'
+          const std = @import("std");
+          pub fn main() void {
+              std.debug.print("Hello, world!\n", .{});
+          }
+          EOF
+          zig build-exe hello.zig -femit-bin=hello
+          ./hello 2>&1 | grep -Fx 'Hello, world!'

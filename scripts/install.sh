@@ -131,6 +131,9 @@ if [[ ! -f "$tool_dir/$binary" ]]; then
     root="$work/extracted/${filename%.tar.xz}"
   fi
   [[ -f "$root/$binary" ]] || die "Zig executable missing from extracted archive"
+  # A stale or partial tool dir (binary missing) must go first, otherwise
+  # mv nests the fresh extract inside it and every later run fails the same way.
+  rm -rf "$tool_dir"
   mv "$root" "$tool_dir"
 fi
 
